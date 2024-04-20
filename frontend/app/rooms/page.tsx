@@ -1,0 +1,71 @@
+"use client"
+import { useEffect, useState } from "react";
+import axios from "axios";
+import { useRouter } from "next/navigation";
+import { GroupInterface, } from "@/app/interface/interface";
+import { getRequest, postRequest } from "../requests/handleApis";
+
+
+
+
+export default function ChatBox(): JSX.Element {
+    const router = useRouter()
+    const [group, setGroup] = useState<GroupInterface[] | undefined>([]);
+    const [groupName, setGroupName] = useState("");
+
+    const joinGroup = async (id: number) => {
+        await postRequest(`/group/join/group/${id}`, { join: "" })
+        router.push(`/rooms/${id}`)
+    }
+
+    const handleAddGroup = async () => {
+        const payload = {
+            group_name: groupName
+        }
+        const data = await postRequest('/group', payload)
+        getGroups()
+        console.log(data)
+        setGroupName("");
+    };
+
+    const getGroups = async () => {
+        const data = await getRequest<GroupInterface[]>('/group')
+        console.log(data, "ddd")
+        setGroup(data)
+    }
+    useEffect(() => {
+        getGroups()
+    }, []);
+
+    return (
+        <div className="flex justify-center items-center h-screen bg-gray-100">
+            <div className="h-96 w-96 flex flex-col items-center bg-white rounded-lg shadow-md p-4">
+                <div className="mb-6 flex items-center">
+                    <input
+                        type="text"
+                        value={groupName}
+                        onChange={(e) => setGroupName(e.target.value)}
+                        className="w-full px-4 py-2 mr-2 border rounded-md focus:outline-none focus:border-blue-500"
+                        placeholder="Enter group name"
+                    />
+                    <button
+                        onClick={handleAddGroup}
+                        className="bg-blue-600 text-white rounded-full py-2 px-4 cursor-pointer hover:bg-blue-700 transition duration-300 ease-in-out"
+                    >
+                        Add
+                    </button>
+                </div>
+
+                {group?.map((group) => (
+                    <div key={group.id} className="p-4 border rounded-md w-full">
+                        <div className="flex items-center" onClick={() => joinGroup(group.id)}>
+                            <div >
+                                <h2 className="text-lg font-semibold">{group.group_name}</h2>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
