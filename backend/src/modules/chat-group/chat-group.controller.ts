@@ -23,12 +23,15 @@ export class ChatGroupController {
     return this.chatGroupService.getGroups();
   }
 
+  @Get('/:id')
+  async getGroupById(@Param('id') id: number) {
+    return this.chatGroupService.getGroupById(id);
+  }
+
   @Post('join/group/:id')
   async joinGroup(@Param('id') id: number, @Req() req: any) {
     const { user } = req.user;
-    console.log(user, 'uuuuuuu');
-    console.log('anas');
-    return this.chatGroupService.joinRoom(id, user.id);
+    return this.chatGroupService.joinRoom(id, user);
   }
 
   @Post('/:id/message')
@@ -49,5 +52,10 @@ export class ChatGroupController {
   ) {
     const { user } = req.user;
     return this.chatGroupService.getGroupMessage(groupId, +user.id);
+  }
+
+  @Get('/:id/users')
+  async getUsersByGroup(@Param('id') id: number) {
+    return this.chatGroupService.getUsersByGroup(id);
   }
 }

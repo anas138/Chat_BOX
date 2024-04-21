@@ -18,8 +18,8 @@ export class ChatGroupService {
   async getGroups() {
     return this.chatGroupRepository.getGroups();
   }
-  async joinRoom(roomId: number, userId: number) {
-    return this.chatGroupRepository.joinRoom(roomId, userId);
+  async joinRoom(roomId: number, user: any) {
+    return this.chatGroupRepository.joinRoom(roomId, user);
   }
 
   async groupMessage(groupId: number, fromUserId: number, body: any) {
@@ -30,11 +30,16 @@ export class ChatGroupService {
       group_id: groupId,
       created_by: fromUserId,
     };
-    console.log(payload, 'model');
     return this.chatService.createMessage(payload);
   }
 
   async getGroupMessage(groupId: number, fromUserId: number) {
     return this.chatService.getGroupMessage(groupId, fromUserId);
+  }
+  async getGroupById(id: number) {
+    return this.chatGroupRepository.getGroupById(id);
+  }
+  async getUsersByGroup(id: number) {
+    return this.chatGroupRepository.getUsersByGroup(id);
   }
 }

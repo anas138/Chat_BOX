@@ -1,31 +1,29 @@
 "use client"
-import { ChangeEvent, useState, useEffect } from "react"
+import { useState, useEffect } from "react"
 import { jwtDecode } from "jwt-decode";
 import { userInterface, chatInterface, dynamicRouteIsInterface } from "@/app/interface/interface";
 import axios from "axios";
-import Header from "@/app/componenets/headers/chatHeader";
 import io from "socket.io-client";
 import Chat from "@/app/componenets/chat/chat";
+import { socketOn, socketDisconnect, socketEmit } from "@/app/requests/handleSocckets";
+
+
 export default function chat({ params }: { params: dynamicRouteIsInterface }): JSX.Element {
     const [message, setMessage] = useState("")
     const [chat, setChat] = useState<chatInterface[]>([])
     const [user, setUser] = useState<userInterface>()
-    const [socket, setSocket] = useState<any>(null)
+    const [typing, setTyping] = useState(null)
     useEffect(() => {
         getToUser()
         getChat()
 
-        //connect sockets
-        const sock = io("http://localhost:3001");
-        setSocket(sock)
+        socketOn("message", () => getChat())
 
-        // listen event
-        sock.on("message", () => {
-            getChat()
-        })
+        socketOn("show-typing", (data: any) => setTyping(data))
+
+
         return () => {
-            sock.disconnect(); // Disconnect from the Socket.IO server when the component unmounts
-            setSocket(null)
+            socketDisconnect(); // Disconnect from the Socket.IO server when the component unmounts
         };
 
     }, [])
@@ -54,7 +52,6 @@ export default function chat({ params }: { params: dynamicRouteIsInterface }): J
     const sendMessage = async () => {
         const token = JSON.stringify(localStorage.getItem("access-token"))
         const fromUserInfo: userInterface = jwtDecode(token)
-        console.log(fromUserInfo, "info")
         const payload = {
             to_user: params.id,
             from_user: fromUserInfo.id,
@@ -70,7 +67,7 @@ export default function chat({ params }: { params: dynamicRouteIsInterface }): J
             })
 
             // handle sockets
-            socket.emit("chat", { data: payload })
+            socketEmit("chat", { data: payload })
             setMessage("")
             getChat()
         }
@@ -79,10 +76,8 @@ export default function chat({ params }: { params: dynamicRouteIsInterface }): J
         }
 
     }
-
-
     return (
-        <Chat setMessage={setMessage} sendMessage={sendMessage} chat={chat} HeaderName={user?.username} params={params} message={message} />
+        <Chat setMessage={setMessage} sendMessage={sendMessage} chat={chat} params={params} message={message} typing={typing} toUser={user} />
     )
 
 }

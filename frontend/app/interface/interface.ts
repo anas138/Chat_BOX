@@ -27,7 +27,10 @@ export interface chatPropsInterface {
   setMessage: (m: string) => void;
   sendMessage: (payload: any) => void;
   chat: chatInterface[] | undefined;
-  HeaderName: string | undefined;
   params: dynamicRouteIsInterface;
   message: string;
+  socket?: any;
+  typing?: any;
+  toUser?: userInterface;
+  fromUser?: userInterface;
 }

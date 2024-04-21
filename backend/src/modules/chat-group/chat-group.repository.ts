@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { SocketGateway } from '../socket/socket.gateway';
 
 import { Not, Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
@@ -11,6 +12,7 @@ export class ChatGroupRepository {
     private chatGroupRepository: Repository<ChatGroupEntity>,
     @InjectRepository(ChatGroupMemberEntity)
     private chatGroupMemberRepository: Repository<ChatGroupMemberEntity>,
+    private readonly socketGateway: SocketGateway,
   ) {}
   async createGroup(body: any) {
     return this.chatGroupRepository.save(body);
@@ -19,22 +21,35 @@ export class ChatGroupRepository {
     return this.chatGroupRepository.find();
   }
 
-  async joinRoom(roomId: number, userId: number) {
+  async joinRoom(roomId: number, user: any) {
     const userExist = await this.chatGroupMemberRepository.findOne({
       where: {
-        user_id: userId,
+        user_id: user.id,
         group_id: roomId,
       },
     });
 
     if (!userExist) {
       const payload = {
-        user_id: userId,
+        user_id: user.id,
         group_id: roomId,
       };
-      return this.chatGroupMemberRepository.save(payload);
+      const member = await this.chatGroupMemberRepository.save(payload);
+      await this.socketGateway.groupNotification({
+        roomId: roomId,
+        joinUser: user,
+      });
+      return member;
     }
 
     return 'user already exists';
+  }
+
+  async getGroupById(id: number) {
+    return this.chatGroupRepository.find({ where: { id: id } });
+  }
+
+  async getUsersByGroup(id: number) {
+    return this.chatGroupMemberRepository.find({ where: { group_id: id } });
   }
 }

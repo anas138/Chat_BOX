@@ -18,20 +18,19 @@ export class SocketGateway {
   @WebSocketServer()
   server: Server;
 
-  @SubscribeMessage('events')
-  findAll(@MessageBody() data: any): Observable<WsResponse<number>> {
-    return from([1, 2, 3]).pipe(
-      map((item) => ({ event: 'events', data: item })),
-    );
-  }
-
-  @SubscribeMessage('identity')
-  async identity(@MessageBody() data: number): Promise<number> {
-    return data;
+  @SubscribeMessage('typing')
+  async typing(@MessageBody() data: any) {
+    this.server.emit('show-typing', { ...data });
   }
 
   @SubscribeMessage('chat')
   async chatMessage(@MessageBody() data: any) {
     this.server.emit('message');
+  }
+
+  //@SubscribeMessage('group-notification')
+  async groupNotification(data: any) {
+    const message = `${data.joinUser.username} has joined the group`;
+    this.server.emit('group-notification', { ...data, message });
   }
 }

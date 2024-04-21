@@ -1,9 +1,10 @@
 "use client"
 import { useEffect, useState } from "react";
-import axios from "axios";
 import { useRouter } from "next/navigation";
-import { GroupInterface, } from "@/app/interface/interface";
+import { GroupInterface, userInterface, } from "@/app/interface/interface";
 import { getRequest, postRequest } from "../requests/handleApis";
+import { socketEmit, socketOn } from "../requests/handleSocckets";
+import { jwtDecode } from "jwt-decode";
 
 
 
@@ -15,7 +16,13 @@ export default function ChatBox(): JSX.Element {
 
     const joinGroup = async (id: number) => {
         await postRequest(`/group/join/group/${id}`, { join: "" })
+        const token = JSON.stringify(localStorage.getItem("access-token"))
+        const fromUserInfo: userInterface = jwtDecode(token)
+        const groupData = await getGroupById(id)
         router.push(`/rooms/${id}`)
+
+
+
     }
 
     const handleAddGroup = async () => {
@@ -24,14 +31,17 @@ export default function ChatBox(): JSX.Element {
         }
         const data = await postRequest('/group', payload)
         getGroups()
-        console.log(data)
         setGroupName("");
     };
 
     const getGroups = async () => {
         const data = await getRequest<GroupInterface[]>('/group')
-        console.log(data, "ddd")
         setGroup(data)
+    }
+
+    const getGroupById = async (id: number) => {
+        const data = await getRequest(`/group/${id}`)
+        return data
     }
     useEffect(() => {
         getGroups()

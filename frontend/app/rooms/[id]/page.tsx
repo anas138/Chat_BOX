@@ -1,8 +1,9 @@
 "use client"
-import { ChangeEvent, useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { jwtDecode } from "jwt-decode";
 import { userInterface, chatInterface, dynamicRouteIsInterface } from "@/app/interface/interface";
-import axios from "axios";
+import { socketOn, socketEmit, socketDisconnect } from "@/app/requests/handleSocckets";
+
 import io from "socket.io-client";
 import Chat from "@/app/componenets/chat/chat";
 import { postRequest, getRequest } from "@/app/requests/handleApis";
@@ -10,22 +11,20 @@ export default function chat({ params }: { params: dynamicRouteIsInterface }): J
     const [message, setMessage] = useState("")
     const [chat, setChat] = useState<chatInterface[] | undefined>([])
     const [user, setUser] = useState<userInterface>()
-    const [socket, setSocket] = useState<any>(null)
+    const notification = useRef()
+
     useEffect(() => {
         getUser()
         getChat()
 
-        //connect sockets
-        const sock = io("http://localhost:3001");
-        setSocket(sock)
-
         // listen event
-        sock.on("message", () => {
-            getChat()
-        })
+        socketOn("message", () => getChat())
+
+        socketOn('group-notification', (data: any) => showNotification(data))
+
         return () => {
-            sock.disconnect(); // Disconnect from the Socket.IO server when the component unmounts
-            setSocket(null)
+            socketDisconnect()
+
         };
 
     }, [])
@@ -45,7 +44,7 @@ export default function chat({ params }: { params: dynamicRouteIsInterface }): J
 
         await postRequest(`/group/${params.id}/message`, payload)
         // handle sockets
-        socket.emit("chat", { data: payload })
+        socketEmit("chat", { data: payload })
         setMessage("")
         getChat()
 
@@ -57,8 +56,30 @@ export default function chat({ params }: { params: dynamicRouteIsInterface }): J
         setUser(fromUserInfo)
     }
 
+    const getGroupUser = async () => {
+        const data = await getRequest<any>(`/group/${params.id}/users`)
+        return data
+    }
+
+    const showNotification = async (data: any) => {
+        const token = JSON.stringify(localStorage.getItem("access-token"))
+        const loggedInUser: userInterface = jwtDecode(token)
+        const groupUsers = await getGroupUser()
+        const getExist = groupUsers.find((group: any) => group.user_id === loggedInUser.id && data.roomId === group.group_id)
+        if (getExist) {
+            console.log(data.message, "exists")
+            notification.current = data.message
+            console.log(notification.current, "current")
+        }
+
+    }
+
+
     return (
-        <Chat setMessage={setMessage} sendMessage={sendMessage} chat={chat} HeaderName={'GROUP'} params={params} message={message} user={user} />
+        <>
+            <div className="fixed top-0 right-0 bg-blue-500 text-white px-4 py-2 rounded-lg shadow-md">{notification.current}</div>
+            <Chat setMessage={setMessage} sendMessage={sendMessage} chat={chat} params={params} message={message} user={user} />
+        </>
     )
 
 }

@@ -1,26 +1,34 @@
 "use client"
 import { ChangeEvent, useState, useEffect } from "react"
 import { jwtDecode } from "jwt-decode";
-import { userInterface, chatInterface, chatPropsInterface } from "@/app/interface/interface";
-import axios from "axios";
+import { userInterface, chatPropsInterface } from "@/app/interface/interface";
 import Header from "@/app/componenets/headers/chatHeader";
+import { socketEmit } from "@/app/requests/handleSocckets";
 
 export default function Chat(props: chatPropsInterface): JSX.Element {
-    const { setMessage, sendMessage, chat, HeaderName, params, message, user } = props
-
-
+    const { setMessage, sendMessage, chat, params, message, user, typing, toUser, } = props
 
     const handleMessage = (e: ChangeEvent<HTMLInputElement>) => {
         setMessage(e.target.value)
+        const token = JSON.stringify(localStorage.getItem("access-token"))
+        const fromUserInfo: userInterface = jwtDecode(token)
+        if (e.target.value === "") {
+            socketEmit("typing", { fromUserInfo: fromUserInfo, typing: "" })
+
+        } else {
+            socketEmit("typing", { fromUserInfo: fromUserInfo, typing: "Typing..." })
+
+        }
+
     }
     return (
         <div className="w-full max-w-lg mx-auto h-screen bg-white shadow-md rounded-lg overflow-hidden relative">
-            <Header username={HeaderName} />
+            <Header user={toUser} typing={typing} />
             <div className="px-4 py-6">
                 <div className="space-y-4">
                     {chat?.map((message) => (
                         <>
-                            {message.to_user === +params.id || message.created_by === user?.id ?
+                            {(message.to_user === +params.id || message.created_by === user?.id) ?
                                 <div key={message.id} className="flex justify-end">
                                     <div className="bg-blue-200 rounded-lg p-2">
                                         {message.message}
